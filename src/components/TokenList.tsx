@@ -1,21 +1,20 @@
 import { useRef, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { Token } from "../types";
 import { TokenRow } from "./TokenRow";
 
 const ROW_HEIGHT = 52;
 
 interface TokenListProps {
-  tokens: Token[];
+  tokenIds: string[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-export function TokenList({ tokens, selectedId, onSelect }: TokenListProps) {
+export function TokenList({ tokenIds, selectedId, onSelect }: TokenListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
-    count: tokens.length,
+    count: tokenIds.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: useCallback(() => ROW_HEIGHT, []),
     overscan: 5,
@@ -33,10 +32,10 @@ export function TokenList({ tokens, selectedId, onSelect }: TokenListProps) {
         }}
       >
         {items.map((virtualRow) => {
-          const token = tokens[virtualRow.index];
+          const tokenId = tokenIds[virtualRow.index];
           return (
             <div
-              key={token.id}
+              key={tokenId}
               style={{
                 position: "absolute",
                 top: 0,
@@ -47,8 +46,8 @@ export function TokenList({ tokens, selectedId, onSelect }: TokenListProps) {
               }}
             >
               <TokenRow
-                token={token}
-                selected={token.id === selectedId}
+                tokenId={tokenId}
+                selected={tokenId === selectedId}
                 onSelect={onSelect}
               />
             </div>

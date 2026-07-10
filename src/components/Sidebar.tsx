@@ -1,4 +1,5 @@
-import type { Token } from "../types";
+import { useCallback, useSyncExternalStore } from "react";
+import { tokenStore } from "../data/tokenStore";
 import {
   formatUsd,
   formatNumber,
@@ -7,10 +8,22 @@ import {
 } from "../format";
 
 interface SidebarProps {
-  token: Token | null;
+  selectedId: string | null;
 }
 
-export function Sidebar({ token }: SidebarProps) {
+
+export function Sidebar({ selectedId }: SidebarProps) {
+  const subscribe = useCallback(
+    (fn: () => void) => tokenStore.subscribeRow(fn),
+    []
+  );
+  const getSnapshot = useCallback(
+    () => (selectedId ? tokenStore.getToken(selectedId) ?? null : null),
+    [selectedId]
+  );
+
+  const token = useSyncExternalStore(subscribe, getSnapshot);
+
   if (!token) {
     return (
       <aside className="sidebar">

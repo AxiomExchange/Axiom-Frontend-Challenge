@@ -1,19 +1,37 @@
-import type { Token } from "../types";
+import { useCallback, useSyncExternalStore } from "react";
+import { tokenStore } from "../data/tokenStore";
 import { formatUsd, formatPct } from "../format";
 
 interface TokenRowProps {
-  token: Token;
+  tokenId: string;
   selected: boolean;
   onSelect: (id: string) => void;
 }
 
-export function TokenRow({ token, selected, onSelect }: TokenRowProps) {
+/**
+ * Reads its own token directly from tokenStore via useSyncExternalStore.
+ * Re renders only when its specific token's object reference changes.
+ */
+export function TokenRow({ tokenId, selected, onSelect }: TokenRowProps) {
+  const subscribe = useCallback(
+    (fn: () => void) => tokenStore.subscribeRow(fn),
+    []
+  );
+  const getSnapshot = useCallback(
+    () => tokenStore.getToken(tokenId),
+    [tokenId]
+  );
+
+  const token = useSyncExternalStore(subscribe, getSnapshot);
+
+  if (!token) return null;
+
   const changeClass = token.priceChangePct >= 0 ? "up" : "down";
 
   return (
     <div
       className={`row${selected ? " row--selected" : ""}`}
-      onClick={() => onSelect(token.id)}
+      onClick={() => onSelect(tokenId)}
     >
       <div className="row__token">
         <span className="row__name">{token.name}</span>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import type { Token } from "../types";
+import { useEffect, useRef } from "react";
 import { generateTokens } from "./generateTokens";
+import { tokenStore } from "./tokenStore";
 
 interface StreamOptions {
   /** How many tokens to seed the feed with. */
@@ -12,45 +12,41 @@ interface StreamOptions {
 }
 
 /**
- * Simulates a live market data feed.
- *
- * NOTE: this is intentionally simple, not optimal. On every tick it builds a
- * brand-new array containing brand-new objects for the tokens that changed.
- * That new array reference is what gets handed to React.
+ * Starts the simulated live market feed and writes updates directly into
+ * tokenStore — bypassing React state entirely so App never re-renders from
+ * ticks. Each visible TokenRow subscribes to the store independently via
+ * useSyncExternalStore and only re-renders when its own token changes.
  */
-export function useTokenStream({
-  count,
-  intervalMs,
-  churn,
-}: StreamOptions): Token[] {
-  const [tokens, setTokens] = useState<Token[]>(() => generateTokens(count));
+export function useTokenStream({ count, intervalMs, churn }: StreamOptions): void {
+  const initialized = useRef(false);
+  if (!initialized.current) {
+    initialized.current = true;
+    tokenStore.initialize(generateTokens(count));
+  }
 
   useEffect(() => {
     const id = setInterval(() => {
-      setTokens((prev) => {
-        const updatesPerTick = Math.floor(prev.length * churn);
-        // Rebuild the entire list every tick.
-        const next = prev.slice();
-        for (let i = 0; i < updatesPerTick; i++) {
-          const index = Math.floor(Math.random() * next.length);
-          const token = next[index];
-          const drift = 1 + (Math.random() - 0.5) * 0.08;
-          const priceUsd = token.priceUsd * drift;
-          next[index] = {
-            ...token,
-            priceUsd,
-            marketCapUsd: token.marketCapUsd * drift,
-            volume24hUsd: token.volume24hUsd * (1 + (Math.random() - 0.5) * 0.1),
-            txCount: token.txCount + Math.floor(Math.random() * 50),
-            priceChangePct: token.priceChangePct + (drift - 1) * 100,
-          };
-        }
-        return next;
-      });
+      const all = Array.from(tokenStore.data.values());
+      const updatesPerTick = Math.floor(all.length * churn);
+
+      for (let i = 0; i < updatesPerTick; i++) {
+        const index = Math.floor(Math.random() * all.length);
+        const token = all[index];
+        const drift = 1 + (Math.random() - 0.5) * 0.08;
+        const priceUsd = token.priceUsd * drift;
+        tokenStore.update(token.id, {
+          ...token,
+          priceUsd,
+          marketCapUsd: token.marketCapUsd * drift,
+          volume24hUsd: token.volume24hUsd * (1 + (Math.random() - 0.5) * 0.1),
+          txCount: token.txCount + Math.floor(Math.random() * 50),
+          priceChangePct: token.priceChangePct + (drift - 1) * 100,
+        });
+      }
+
+      tokenStore.notify();
     }, intervalMs);
 
     return () => clearInterval(id);
   }, [count, intervalMs, churn]);
-
-  return tokens;
 }
