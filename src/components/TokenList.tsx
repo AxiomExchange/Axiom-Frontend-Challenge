@@ -1,5 +1,9 @@
+import { useRef, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Token } from "../types";
 import { TokenRow } from "./TokenRow";
+
+const ROW_HEIGHT = 52;
 
 interface TokenListProps {
   tokens: Token[];
@@ -7,24 +11,50 @@ interface TokenListProps {
   onSelect: (id: string) => void;
 }
 
-/**
- * Renders the feed.
- *
- * NOTE: this maps over every token and mounts a DOM node for each one. With a
- * few hundred rows that's fine; with tens of thousands of live-updating rows it
- * is not. This is the part of the app the challenge is about.
- */
 export function TokenList({ tokens, selectedId, onSelect }: TokenListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: tokens.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: useCallback(() => ROW_HEIGHT, []),
+    overscan: 5,
+  });
+
+  const items = virtualizer.getVirtualItems();
+
   return (
-    <div className="feed__list">
-      {tokens.map((token) => (
-        <TokenRow
-          key={token.id}
-          token={token}
-          selected={token.id === selectedId}
-          onSelect={onSelect}
-        />
-      ))}
+    <div className="feed__list" ref={scrollRef}>
+      <div
+        style={{
+          height: virtualizer.getTotalSize(),
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {items.map((virtualRow) => {
+          const token = tokens[virtualRow.index];
+          return (
+            <div
+              key={token.id}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: ROW_HEIGHT,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <TokenRow
+                token={token}
+                selected={token.id === selectedId}
+                onSelect={onSelect}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
