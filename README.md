@@ -114,5 +114,5 @@ You're free to change any of it.
 
 ## Questions & Feedback
 
-Reach out to Som (som@axiom.trading) with any questions about the
+Reach out to Som (som@axiom.trade) with any questions about the
 challenge.
