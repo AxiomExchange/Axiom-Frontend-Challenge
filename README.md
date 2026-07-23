@@ -91,7 +91,7 @@ feature-stuffed one every time.
 1. Fork this repository. Make it private.
 2. Commit your changes along with your `DESIGN.md`.
 3. Share the fork with knownotunknown
-4. Email a link to the repo to som@axiom.trading
+4. Email a link to the repo to som@axiom.trade
 
 ## Project layout
 
